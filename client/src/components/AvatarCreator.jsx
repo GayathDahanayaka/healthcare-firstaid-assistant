@@ -1,38 +1,66 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { AvaturnSDK } from "@avaturn/sdk";
+
+// Free tier — sign up at https://developer.avaturn.me for your own subdomain.
+// "demo" works for testing but is shared/rate-limited; swap before final submission.
+const AVATURN_SUBDOMAIN = "demo";
 
 function AvatarCreator({ onAvatarCreated }) {
-  const [showCreator, setShowCreator] = useState(true);
+  const containerRef = useRef(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    function handleMessage(event) {
-      if (typeof event.data !== "string") return;
-      if (!event.data.includes("v1.avatar.exported")) return;
+    let sdk;
+    let cancelled = false;
 
+    async function load() {
       try {
-        const json = JSON.parse(event.data);
-        const avatarUrl = json.data?.url;
-        if (avatarUrl) {
-          onAvatarCreated(avatarUrl);
-          setShowCreator(false);
-        }
-      } catch (e) {
-        console.warn("Could not parse RPM message", e);
+        sdk = new AvaturnSDK();
+        await sdk.init(containerRef.current, {
+          url: `https://${AVATURN_SUBDOMAIN}.avaturn.dev`,
+        });
+        if (cancelled) return;
+        setLoading(false);
+
+        sdk.on("export", (data) => {
+          if (data?.url) onAvatarCreated(data.url);
+        });
+      } catch (err) {
+        console.error("Avaturn failed to load:", err);
+        if (!cancelled) setError(true);
       }
     }
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
+
+    load();
+    return () => {
+      cancelled = true;
+      sdk?.destroy?.();
+    };
   }, [onAvatarCreated]);
 
-  if (!showCreator) return null;
-
   return (
-    <div style={{ width: "100%", height: "600px" }}>
-      <iframe
-        title="Avatar Creator"
-        src="https://demo.readyplayer.me/avatar?frameApi"
-        style={{ width: "100%", height: "100%", border: "none" }}
-        allow="camera *; microphone *"
-      />
+    <div className="avatar-creator-shell">
+      <div className="avatar-creator-header">
+        <h2>Create Your Avatar</h2>
+        <p>Design your look, then click "Next" inside the editor when you're done.</p>
+      </div>
+
+      {error && (
+        <div className="avatar-error">
+          Couldn't load the avatar creator right now. You can{" "}
+          <button className="link-btn" onClick={() => onAvatarCreated(null)}>
+            skip and continue to chat
+          </button>{" "}
+          instead.
+        </div>
+      )}
+
+      {loading && !error && (
+        <div className="avatar-loading">Loading avatar creator…</div>
+      )}
+
+      <div ref={containerRef} className="avaturn-container" />
     </div>
   );
 }
