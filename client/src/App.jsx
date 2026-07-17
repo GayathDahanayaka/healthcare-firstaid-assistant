@@ -58,6 +58,7 @@ function loadStoredMessages() {
 
 function App() {
   const [avatarUrl, setAvatarUrl] = useState(loadStoredAvatar);
+  const [avatarSnapshot, setAvatarSnapshot] = useState(null);
   const [facingOffset, setFacingOffset] = useState(() => Number(safeGet("avatarFacing")) || 0);
   const [messages, setMessages] = useState(loadStoredMessages);
   const [input, setInput] = useState("");
@@ -89,11 +90,13 @@ function App() {
 
   const chooseAvatar = (url) => {
     setAvatarUrl(url);
+    setAvatarSnapshot(null);
     safeSet("avatarUrl", url === null ? "skip" : url);
   };
 
   const resetAvatar = () => {
     setAvatarUrl(undefined);
+    setAvatarSnapshot(null);
     setFacingOffset(0);
     safeRemove("avatarUrl");
     safeRemove("avatarFacing");
@@ -166,11 +169,16 @@ function App() {
         </a>
       </header>
 
+      {/* Signature motif: a quiet heartbeat pulse-line under the header,
+          tying the visual identity directly to "health guide" rather than
+          a generic decorative gradient. */}
+      <div className="pulse-strip" aria-hidden="true" />
+
       <main className="app-body">
         <aside className="avatar-panel">
           <div className="assistant-card">
             <div className="avatar-card">
-              <Avatar3D avatarUrl={avatarUrl} facingOffset={facingOffset} />
+              <Avatar3D avatarUrl={avatarUrl} facingOffset={facingOffset} onSnapshot={setAvatarSnapshot} />
             </div>
 
             <div className="assistant-identity">
@@ -186,9 +194,10 @@ function App() {
 
             <div className="tech-badges">
               <span className="badge">🧠 Gemini + RAG</span>
-              <span className="badge">
-                ⚡ {latencyMs !== null ? `${latencyMs}ms` : "—"}
-              </span>
+              <span className="badge">🌐 EN · SI</span>
+              {latencyMs !== null && (
+                <span className="badge badge-muted">⚡ {latencyMs}ms</span>
+              )}
             </div>
           </div>
 
@@ -217,7 +226,17 @@ function App() {
           <div className="messages">
             {messages.map((m, i) => (
               <div key={i} className={`msg-row ${m.sender}`}>
+                {m.sender === "assistant" && (
+                  <div
+                    className="msg-avatar assistant"
+                    aria-hidden="true"
+                    style={avatarSnapshot ? { backgroundImage: `url(${avatarSnapshot})` } : undefined}
+                  >
+                    {!avatarSnapshot && "🩺"}
+                  </div>
+                )}
                 <div className={`msg ${m.sender} ${m.isError ? "error" : ""}`}>
+                  {m.isError && <span className="msg-error-icon">⚠️</span>}
                   <p>{m.text}</p>
                   {m.sources && m.sources.length > 0 && (
                     <div className="msg-sources">
@@ -225,10 +244,20 @@ function App() {
                     </div>
                   )}
                 </div>
+                {m.sender === "user" && (
+                  <div className="msg-avatar user" aria-hidden="true">🙂</div>
+                )}
               </div>
             ))}
             {loading && (
               <div className="msg-row assistant">
+                <div
+                  className="msg-avatar assistant"
+                  aria-hidden="true"
+                  style={avatarSnapshot ? { backgroundImage: `url(${avatarSnapshot})` } : undefined}
+                >
+                  {!avatarSnapshot && "🩺"}
+                </div>
                 <div className="msg assistant typing">
                   <span className="dot" />
                   <span className="dot" />

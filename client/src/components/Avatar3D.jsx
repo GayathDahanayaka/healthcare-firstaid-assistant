@@ -1,5 +1,5 @@
-import { Suspense, useLayoutEffect } from "react";
-import { Canvas } from "@react-three/fiber";
+import { Suspense, useLayoutEffect, useEffect, useRef } from "react";
+import { Canvas, useThree } from "@react-three/fiber";
 import { useGLTF, OrbitControls, Environment } from "@react-three/drei";
 import * as THREE from "three";
 
@@ -101,8 +101,10 @@ function relaxArmPose(scene) {
   relaxOneArm(rightArm, rightForeArm, -1);
 }
 
-function Model({ url, facingOffset }) {
+function Model({ url, facingOffset, onSnapshot }) {
   const { scene } = useGLTF(url);
+  const { gl } = useThree();
+  const capturedForUrl = useRef(null);
 
   useLayoutEffect(() => {
     scene.rotation.y = facingOffset;
@@ -122,10 +124,39 @@ function Model({ url, facingOffset }) {
     scene.scale.setScalar(scale);
   }, [scene, facingOffset]);
 
+  // Grab a still image of the posed avatar for reuse as a lightweight chat
+  // avatar (spinning up a full WebGL canvas per chat bubble would be very
+  // expensive). Only captured once per avatar URL — not on every facing
+  // flip — so turning the avatar around doesn't swap the chat icon to the
+  // back of its head.
+  useEffect(() => {
+    if (!onSnapshot || capturedForUrl.current === url) return;
+
+    let raf1, raf2;
+    raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        try {
+          const dataUrl = gl.domElement.toDataURL("image/png");
+          capturedForUrl.current = url;
+          onSnapshot(dataUrl);
+        } catch (err) {
+          // Most likely a CORS-restricted texture tainting the canvas —
+          // fall back silently, the UI just keeps its default icon.
+          console.warn("Avatar3D: snapshot capture failed", err);
+        }
+      });
+    });
+
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+    };
+  }, [scene, url, gl, onSnapshot]);
+
   return <primitive object={scene} />;
 }
 
-function Avatar3D({ avatarUrl, facingOffset = 0 }) {
+function Avatar3D({ avatarUrl, facingOffset = 0, onSnapshot }) {
   if (!avatarUrl) {
     return (
       <div className="avatar-placeholder">
@@ -136,11 +167,14 @@ function Avatar3D({ avatarUrl, facingOffset = 0 }) {
   }
 
   return (
-    <Canvas camera={{ position: CAMERA_POSITION, fov: CAMERA_FOV }}>
+    <Canvas
+      camera={{ position: CAMERA_POSITION, fov: CAMERA_FOV }}
+      gl={{ preserveDrawingBuffer: true }}
+    >
       <ambientLight intensity={1} />
       <directionalLight position={[2, 3, 2]} intensity={1.2} />
       <Suspense fallback={null}>
-        <Model url={avatarUrl} facingOffset={facingOffset} />
+        <Model url={avatarUrl} facingOffset={facingOffset} onSnapshot={onSnapshot} />
         <Environment preset="city" background={false} />
       </Suspense>
       <OrbitControls
