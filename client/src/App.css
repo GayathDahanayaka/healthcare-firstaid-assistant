@@ -305,7 +305,7 @@ body {
   background: var(--surface-0);
 }
 .messages {
-  flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;
+  flex: 1; overflow-y: auto; display: flex; flex-direction: column;
   padding-right: 4px;
 }
 .messages { scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
@@ -313,7 +313,7 @@ body {
 .messages::-webkit-scrollbar-track { background: transparent; }
 .messages::-webkit-scrollbar-thumb { background: var(--line); border-radius: var(--radius-pill); }
 
-.msg-row { display: flex; align-items: flex-end; gap: 8px; animation: msg-in 0.28s var(--ease); }
+.msg-row { display: flex; align-items: flex-start; gap: 8px; animation: msg-in 0.28s var(--ease); margin: 10px 0; }
 .msg-row.user { justify-content: flex-end; }
 .msg-row.assistant { justify-content: flex-start; }
 @keyframes msg-in {
@@ -327,7 +327,7 @@ body {
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   font-size: 14px;
-  margin-bottom: 2px;
+  margin-top: 2px;
   background-size: cover;
   background-position: center 15%;
 }
@@ -345,8 +345,28 @@ body {
   margin-right: 6px;
 }
 
+.msg-col {
+  display: flex;
+  flex-direction: column;
+  max-width: 66%;
+}
+.msg-row.user .msg-col { align-items: flex-end; }
+.msg-row.assistant .msg-col { align-items: flex-start; }
+
+.msg-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 4px 3px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--muted);
+}
+.msg-sender { font-weight: 600; color: var(--teal-700); }
+.typing-label { font-style: italic; }
+
 .msg {
-  max-width: 66%; padding: 12px 16px; border-radius: var(--radius-lg); margin: 6px 0;
+  padding: 12px 16px; border-radius: var(--radius-lg); margin: 0;
   font-size: 14.5px; line-height: 1.55;
 }
 .msg p { margin: 0; white-space: pre-wrap; }
@@ -359,12 +379,52 @@ body {
   border-bottom-left-radius: 4px; color: var(--ink);
   box-shadow: var(--shadow-sm);
 }
-.msg.error { border-color: var(--coral-600); color: var(--coral-600); background: var(--coral-tint); display: flex; align-items: flex-start; }
-.msg.error p { flex: 1; }
+.msg.error { border-color: var(--coral-600); color: var(--coral-600); background: var(--coral-tint); display: flex; align-items: flex-start; flex-wrap: wrap; gap: 4px 0; }
+.msg.error p { flex: 1; min-width: 60%; }
+
 .msg-sources {
-  margin-top: 8px; font-family: var(--font-mono); font-size: 10.5px;
-  opacity: 0.65; letter-spacing: 0.02em;
+  margin-top: 8px; display: flex; flex-wrap: wrap; gap: 5px;
 }
+.source-chip {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+  padding: 3px 8px; border-radius: var(--radius-pill);
+  background: var(--surface-2); color: var(--muted);
+  border: 1px solid var(--line);
+}
+
+.retry-btn {
+  margin-top: 8px; width: 100%;
+  padding: 6px 10px; border-radius: var(--radius-sm);
+  border: 1px solid var(--coral-600); background: transparent;
+  color: var(--coral-600); font-family: var(--font-body); font-weight: 600;
+  font-size: 12px; cursor: pointer;
+  transition: background 0.15s var(--ease);
+}
+.retry-btn:hover { background: var(--coral-tint); }
+
+.copy-btn {
+  margin: 4px 4px 0;
+  border: none; background: none; cursor: pointer;
+  font-family: var(--font-mono); font-size: 10.5px; color: var(--muted);
+  opacity: 0; transition: opacity 0.15s var(--ease), color 0.15s var(--ease);
+  padding: 2px 4px;
+}
+.msg-row.assistant:hover .copy-btn { opacity: 1; }
+.copy-btn:hover { color: var(--teal-600); }
+
+.quick-prompts {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  padding: 4px 4px 12px 42px;
+  animation: msg-in 0.3s var(--ease);
+}
+.quick-prompt-chip {
+  padding: 9px 14px; border-radius: var(--radius-pill);
+  border: 1px solid var(--teal-500); background: var(--teal-tint);
+  color: var(--teal-700); font-family: var(--font-body); font-weight: 600;
+  font-size: 13px; cursor: pointer;
+  transition: background 0.15s var(--ease), transform 0.15s var(--ease);
+}
+.quick-prompt-chip:hover { background: var(--teal-500); color: white; transform: translateY(-1px); }
 
 .msg.typing { display: flex; gap: 5px; padding: 15px 16px; align-items: center; }
 .dot {
@@ -378,24 +438,26 @@ body {
   30% { transform: translateY(-4px); opacity: 1; }
 }
 
-.input-row { display: flex; gap: 10px; margin-top: 14px; }
-.input-row input {
-  flex: 1; padding: 13px 18px; border-radius: var(--radius-pill); border: 1px solid var(--line);
+.input-row { display: flex; gap: 10px; margin-top: 14px; align-items: flex-end; }
+.input-row textarea {
+  flex: 1; padding: 13px 18px; border-radius: 22px; border: 1px solid var(--line);
   font-family: var(--font-body); font-size: 14px; outline: none;
   background: var(--surface-1); color: var(--ink);
   caret-color: var(--teal-600);
   box-shadow: var(--shadow-sm);
+  resize: none; overflow-y: auto; max-height: 120px;
+  line-height: 1.4;
   transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease);
 }
-.input-row input:focus {
+.input-row textarea:focus {
   border-color: var(--teal-500);
   box-shadow: 0 0 0 3px var(--teal-tint);
 }
-.input-row input::placeholder { color: var(--muted); }
+.input-row textarea::placeholder { color: var(--muted); }
 .input-row button {
-  padding: 0 24px; background: var(--teal-600); color: white; border: none;
+  padding: 0 24px; height: 46px; background: var(--teal-600); color: white; border: none;
   border-radius: var(--radius-pill); font-family: var(--font-body); font-weight: 600;
-  font-size: 14px; cursor: pointer;
+  font-size: 14px; cursor: pointer; flex-shrink: 0;
   transition: background 0.15s var(--ease), transform 0.15s var(--ease);
 }
 .input-row button:hover:not(:disabled) { background: var(--teal-700); transform: translateY(-1px); }
@@ -414,6 +476,7 @@ a:focus-visible, button:focus-visible, input:focus-visible {
   .avatar-panel { width: 100%; border-right: none; border-bottom: 1px solid var(--line); }
   .avatar-card { height: 220px; width: 220px; }
   .chat-panel { padding: 16px 18px; }
-  .msg { max-width: 78%; }
+  .msg-col { max-width: 78%; }
   .msg-avatar { width: 26px; height: 26px; flex: 0 0 26px; }
+  .quick-prompts { padding-left: 8px; }
 }
