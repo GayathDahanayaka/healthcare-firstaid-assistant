@@ -6,7 +6,7 @@ import "./App.css";
 
 const API_URL = "http://localhost:5000/api/chat";
 
-const ASSISTANT_NAME = "Aria";
+const ASSISTANT_NAME = "MedicAI";
 const ASSISTANT_ROLE = "First-Aid & Health Guide";
 
 const GREETING_TEXT =
